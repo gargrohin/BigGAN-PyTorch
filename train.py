@@ -68,7 +68,7 @@ def run(config):
   # Next, build the model
   multiD = []
   multiGD = []
-  n_dis = 1
+  n_dis = 2
   G = model.Generator(**config).to(device)
   for i in range(n_dis):
     D = model.Discriminator(**config).to(device)
