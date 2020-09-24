@@ -107,7 +107,7 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
           p.requires_grad = False
         D_fake = multiGD[dind](z_, y_, train_G=True, split_D=config['split_D'])
         critic_fakes.append(D_fake)
-        lit[i] = torch.sum(D_fake).item()
+        lit[dind] = torch.sum(D_fake).item()
       loss_sort = np.argsort(lit)
       weights = np.random.dirichlet(np.ones(n_dis))
       weights = np.sort(weights)[::-1]
