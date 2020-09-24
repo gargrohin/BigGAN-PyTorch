@@ -51,9 +51,11 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
             D_fake_multi = D_fake
             D_real_multi = D_real
             flag = False
+            print(D_fake_multi.size())
           else:
             D_fake_multi = torch.cat((D_fake_multi, D_fake), dim = 1)
             D_real_multi = torch.cat((D_real_multi, D_real), dim = 1)
+            print(D_fake_multi.size())
           
         ind = torch.argmin(D_fake_multi, dim = 1)
         mask = torch.zeros((config['batch_size'], n_dis)).cuda()
