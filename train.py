@@ -185,7 +185,7 @@ def run(config):
       # For D, which typically doesn't have BN, this shouldn't matter much.
       G.train()
       for dis_index in range(n_dis):
-        multiD[i].train()
+        multiD[dis_index].train()
       if config['ema']:
         G_ema.train()
       if config['D_fp16']:
