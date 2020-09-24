@@ -62,7 +62,7 @@ def run(config):
   model = __import__(config['model'])
   experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
-  experiment_name = experiment_name + '_n_dis_1'
+  experiment_name = experiment_name + '_n_dis_2'
   print('Experiment name is %s' % experiment_name)
 
   # Next, build the model

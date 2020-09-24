@@ -40,6 +40,8 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
       flag = True
       for dind in range(n_dis):
         multiD[dind].optim.zero_grad()
+        for p in multiD[dind].parameters():
+          p.requires_grad = True
       for accumulation_index in range(config['num_D_accumulations']):
         z_.sample_()
         y_.sample_()
@@ -51,11 +53,9 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
             D_fake_multi = D_fake
             D_real_multi = D_real
             flag = False
-            print(D_fake_multi.size())
           else:
             D_fake_multi = torch.cat((D_fake_multi, D_fake), dim = 1)
             D_real_multi = torch.cat((D_real_multi, D_real), dim = 1)
-            print(D_fake_multi.size())
           
         ind = torch.argmin(D_fake_multi, dim = 1)
         mask = torch.zeros((config['batch_size'], n_dis)).cuda()
@@ -77,6 +77,7 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
         # the number of gradient accumulations
         D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake_output, D_real_output)
         D_loss = (D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
+        #print(D_loss)
         D_loss.backward()
         counter += 1
         
@@ -105,8 +106,8 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
       critic_fakes = []
       lit = np.zeros(n_dis)
       for dind in range(n_dis):
-        for p in multiD[dind].parameters():
-          p.requires_grad = False
+        #for p in multiD[dind].parameters():
+        #  p.requires_grad = False
         D_fake = multiGD[dind](z_, y_, train_G=True, split_D=config['split_D'])
         critic_fakes.append(D_fake)
         lit[dind] = torch.sum(D_fake).item()
