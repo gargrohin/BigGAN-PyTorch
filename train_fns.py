@@ -89,7 +89,8 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
     
     # Optionally toggle "requires_grad"
     if config['toggle_grads']:
-      utils.toggle_grad(D, False)
+      for dind in range(n_dis):
+        utils.toggle_grad(D, False)
       utils.toggle_grad(G, True)
       
     # Zero G's gradients by default before training G, for safety

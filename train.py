@@ -94,8 +94,8 @@ def run(config):
     for i in range(n_dis):
       multiD[i] = multiD[i].half()
     # Consider automatically reducing SN_eps?
-  for D in multiD:
-    GD = model.G_D(G, D)
+  for dind in range(n_dis):
+    GD = model.G_D(G, multiD[dind])
     multiGD.append(GD)
   print(G)
   print(D)
