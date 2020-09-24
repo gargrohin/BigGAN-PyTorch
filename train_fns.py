@@ -103,7 +103,7 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
       critic_fakes = []
       lit = np.zeros(n_dis)
       for dind in range(n_dis):
-        for p in multiD[i].parameters():
+        for p in multiD[dind].parameters():
           p.requires_grad = False
         D_fake = multiGD[dind](z_, y_, train_G=True, split_D=config['split_D'])
         critic_fakes.append(D_fake)
