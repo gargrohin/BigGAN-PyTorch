@@ -62,11 +62,17 @@ def run(config):
   model = __import__(config['model'])
   experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
+  experiment_name = experiment_name + 'n_dis_2'
   print('Experiment name is %s' % experiment_name)
 
   # Next, build the model
+  multiD = []
+  multiGD = []
+  n_dis = 2
   G = model.Generator(**config).to(device)
-  D = model.Discriminator(**config).to(device)
+  for i in range(n_dis):
+    D = model.Discriminator(**config).to(device)
+    multiD.append(D)
   
    # If using EMA, prepare it
   if config['ema']:
@@ -85,9 +91,12 @@ def run(config):
       G_ema = G_ema.half()
   if config['D_fp16']:
     print('Casting D to fp16...')
-    D = D.half()
+    for i in range(n_dis):
+      multiD[i] = multiD[i].half()
     # Consider automatically reducing SN_eps?
-  GD = model.G_D(G, D)
+  for D in multiD:
+    GD = model.G_D(G, D)
+    multiGD.append(GD)
   print(G)
   print(D)
   print('Number of params in G: {} D: {}'.format(
@@ -106,9 +115,10 @@ def run(config):
 
   # If parallel, parallelize the GD module
   if config['parallel']:
-    GD = nn.DataParallel(GD)
-    if config['cross_replica']:
-      patch_replication_callback(GD)
+    for i in range(n_dis):
+      multiGD[i] = nn.DataParallel(multiGD[i])
+      if config['cross_replica']:
+        patch_replication_callback(multiGD[i])
 
   # Prepare loggers for stats; metrics holds test metrics,
   # lmetrics holds any desired training metrics.
@@ -149,7 +159,7 @@ def run(config):
   fixed_y.sample_()
   # Loaders are loaded, prepare the training function
   if config['which_train_fn'] == 'GAN':
-    train = train_fns.GAN_training_function(G, D, GD, z_, y_, 
+    train = train_fns.GAN_training_function(G, multiD, multiGD, z_, y_, 
                                             ema, state_dict, config)
   # Else, assume debugging and use the dummy train fn
   else:
@@ -174,7 +184,8 @@ def run(config):
       # Make sure G and D are in training mode, just in case they got set to eval
       # For D, which typically doesn't have BN, this shouldn't matter much.
       G.train()
-      D.train()
+      for dis_index in range(n_dis):
+        multiD[i].train()
       if config['ema']:
         G_ema.train()
       if config['D_fp16']:
@@ -202,7 +213,7 @@ def run(config):
           G.eval()
           if config['ema']:
             G_ema.eval()
-        train_fns.save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y, 
+        train_fns.save_and_sample(G, multiD[0], G_ema, z_, y_, fixed_z, fixed_y, 
                                   state_dict, config, experiment_name)
 
       # Test every specified interval
@@ -210,7 +221,7 @@ def run(config):
         if config['G_eval_mode']:
           print('Switchin G to eval mode...')
           G.eval()
-        train_fns.test(G, D, G_ema, z_, y_, state_dict, config, sample,
+        train_fns.test(G, multiD[0], G_ema, z_, y_, state_dict, config, sample,
                        get_inception_metrics, experiment_name, test_log)
     # Increment epoch counter at end of epoch
     state_dict['epoch'] += 1

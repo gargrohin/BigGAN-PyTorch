@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import os
+import numpy as np
 
 import utils
 import losses
@@ -17,10 +18,12 @@ def dummy_training_function():
   return train
 
 
-def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
+def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
   def train(x, y):
+    n_dis = len(multiD)
     G.optim.zero_grad()
-    D.optim.zero_grad()
+    for dind in range(n_dis):
+      multiD[dind].optim.zero_grad()
     # How many chunks to split x and y into?
     x = torch.split(x, config['batch_size'])
     y = torch.split(y, config['batch_size'])
@@ -28,22 +31,49 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
     
     # Optionally toggle D and G's "require_grad"
     if config['toggle_grads']:
-      utils.toggle_grad(D, True)
+      for dind in range(dind):
+        utils.toggle_grad(multiD[dind], True)
       utils.toggle_grad(G, False)
       
     for step_index in range(config['num_D_steps']):
       # If accumulating gradients, loop multiple times before an optimizer step
-      D.optim.zero_grad()
+      flag = True
+      for dind in range(n_dis):
+        multiD[dind].optim.zero_grad()
       for accumulation_index in range(config['num_D_accumulations']):
         z_.sample_()
         y_.sample_()
-        D_fake, D_real = GD(z_[:config['batch_size']], y_[:config['batch_size']], 
-                            x[counter], y[counter], train_G=False, 
-                            split_D=config['split_D'])
-         
+        for dind in range(n_dis):
+          D_fake, D_real = multiGD[dind](z_[:config['batch_size']], y_[:config['batch_size']], 
+                              x[counter], y[counter], train_G=False, 
+                              split_D=config['split_D'])
+          if flag:
+            D_fake_multi = D_fake
+            D_real_multi = D_real
+            flag = False
+          else:
+            D_fake_multi = torch.cat((D_fake_multi, D_fake), dim = 1)
+            D_real_multi = torch.cat((D_real_multi, D_real), dim = 1)
+          
+        ind = torch.argmin(D_fake_multi, dim = 1)
+        mask = torch.zeros((config['batch_size'], n_dis)).cuda()
+        mask2 = torch.zeros((config['batch_size'], n_dis)).cuda()
+
+        for i in range(mask2.size()[0]):
+          random_checker = np.random.randint(0,10)
+          if random_checker > 7:  #100 for no random thingie
+            index = np.random.randint(0,n_dis)
+            mask[i][index] = 1.0
+            mask2[i][index] = 1.0
+          else:
+            mask[i][ind[i]] = 1.0
+            mask2[i][ind[i]] = 1.0
+        
+        D_fake_output = torch.sum(mask2*D_fake_multi, dim = 1)
+        D_real_output = torch.sum(mask*D_real_multi, dim = 1)
         # Compute components of D's loss, average them, and divide by 
         # the number of gradient accumulations
-        D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake, D_real)
+        D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake_output, D_real_output)
         D_loss = (D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
         D_loss.backward()
         counter += 1
@@ -52,9 +82,10 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
       if config['D_ortho'] > 0.0:
         # Debug print to indicate we're using ortho reg in D.
         print('using modified ortho reg in D')
-        utils.ortho(D, config['D_ortho'])
-      
-      D.optim.step()
+        for dind in range(n_dis):
+          utils.ortho(multiD[dind], config['D_ortho'])
+      for dind in range(n_dis):
+        multiD[dind].optim.step()
     
     # Optionally toggle "requires_grad"
     if config['toggle_grads']:
@@ -68,8 +99,27 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
     for accumulation_index in range(config['num_G_accumulations']):    
       z_.sample_()
       y_.sample_()
-      D_fake = GD(z_, y_, train_G=True, split_D=config['split_D'])
-      G_loss = losses.generator_loss(D_fake) / float(config['num_G_accumulations'])
+      critic_fakes = []
+      lit = np.zeros(n_dis)
+      for dind in range(n_dis):
+        for p in multiD[i].parameters():
+          p.requires_grad = False
+        D_fake = multiGD[dind](z_, y_, train_G=True, split_D=config['split_D'])
+        critic_fakes.append(D_fake)
+        lit[i] = torch.sum(D_fake).item()
+      loss_sort = np.argsort(lit)
+      weights = np.random.dirichlet(np.ones(n_dis))
+      weights = np.sort(weights)[::-1]
+
+      flag = False
+      for i in range(len(critic_fakes)):
+        if flag == False:
+          critic_fake = weights[i]*critic_fakes[loss_sort[i]]
+          flag = True
+        else:
+          critic_fake = torch.add(critic_fake, weights[i]*critic_fakes[loss_sort[i]])
+
+      G_loss = losses.generator_loss(critic_fake) / float(config['num_G_accumulations'])
       G_loss.backward()
     
     # Optionally apply modified ortho reg in G
