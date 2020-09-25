@@ -93,7 +93,11 @@ def run(config):
         MODEL_DIR, 'classify_image_graph_def.pb'), 'rb') as f:
       graph_def = tf.GraphDef()
       graph_def.ParseFromString(f.read())
-      _ = tf.import_graph_def(graph_def, name='')
+      input_tensor = tf.placeholder(tf.float32, shape=[None, None, None, 3],
+                                    name='InputTensor')
+      _ = tf.import_graph_def(graph_def, name='',
+                              input_map={'ExpandDims:0':input_tensor})
+      # _ = tf.import_graph_def(graph_def, name='')
     # Works with an arbitrary minibatch size.
     with tf.Session() as sess:
       pool3 = sess.graph.get_tensor_by_name('pool_3:0')
@@ -108,9 +112,9 @@ def run(config):
               new_shape.append(None)
             else:
               new_shape.append(s)
-          o._shape = tf.TensorShape(new_shape)
+          o.set_shape(tf.TensorShape(new_shape))
       w = sess.graph.get_operation_by_name("softmax/logits/MatMul").inputs[1]
-      logits = tf.matmul(tf.squeeze(pool3), w)
+      logits = tf.matmul(tf.squeeze(pool3, [1,2]), w)
       softmax = tf.nn.softmax(logits)
 
   # if softmax is None: # No need to functionalize like this.
