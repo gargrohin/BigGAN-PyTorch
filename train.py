@@ -229,7 +229,7 @@ def run(config):
     # Increment epoch counter at end of epoch
     state_dict['epoch'] += 1
 
-    print("\n To add a D or not to\n")
+    # print("\n To add a D or not to\n")
   
     if fixed_exemplar == None:
       fixed_exemplar = x[:15]
@@ -261,7 +261,7 @@ def run(config):
       
       if adding:
         curr_ndis += 1  ## the D and GD are already initialized.
-        print("\nAdding\n")
+        # print("\nAdding\n")
 
 
 
