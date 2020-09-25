@@ -68,7 +68,8 @@ def run(config):
   # Next, build the model
   multiD = []
   multiGD = []
-  n_dis = 4
+  n_dis = 4  # maximum allowed
+  curr_ndis = 1 # initial
   G = model.Generator(**config).to(device)
   for i in range(n_dis):
     D = model.Discriminator(**config).to(device)
@@ -157,6 +158,8 @@ def run(config):
                                        fp16=config['G_fp16'])  
   fixed_z.sample_()
   fixed_y.sample_()
+
+  fixed_exemplar = None
   # Loaders are loaded, prepare the training function
   if config['which_train_fn'] == 'GAN':
     train = train_fns.GAN_training_function(G, multiD, multiGD, z_, y_, 
@@ -192,7 +195,7 @@ def run(config):
         x, y = x.to(device).half(), y.to(device)
       else:
         x, y = x.to(device), y.to(device)
-      metrics = train(x, y)
+      metrics = train(x, y, curr_ndis)
       train_log.log(itr=int(state_dict['itr']), **metrics)
       
       # Every sv_log_interval, log singular values
@@ -225,6 +228,41 @@ def run(config):
                        get_inception_metrics, experiment_name, test_log)
     # Increment epoch counter at end of epoch
     state_dict['epoch'] += 1
+
+    print("\n To add a D or not to\n")
+  
+    if fixed_exemplar == None:
+      fixed_exemplar = x[:15]
+      fixed_exemplar_y = y[:15]
+    if curr_ndis < n_dis:
+      adding = False
+      exemplar_flag = True
+      with torch.no_grad():
+        for dis_index in range(curr_ndis):
+          if exemplar_flag:
+              _, exemplar_res = multiGD[dis_index](fixed_z, fixed_y, 
+                                fixed_exemplar, fixed_exemplar_y, train_G=False, 
+                                split_D=config['split_D'])
+              exemplar_flag = False
+              exemplar_res = exemplar_res.unsqueeze(0)
+          else:
+            _, exemplar_res2 = multiGD[dis_index](fixed_z, fixed_y, 
+                              fixed_exemplar, fixed_exemplar_y, train_G=False, 
+                              split_D=config['split_D'])
+            exemplar_res2 = exemplar_res2.unsqueeze(0)
+            exemplar_res = torch.cat((exemplar_res2, exemplar_res), dim=0)
+      
+      alpha = 1 + (curr_ndis-1)/n_dis
+      exemplar_max,_ = torch.max(exemplar_res, dim = 1)
+      for i in range(curr_ndis):
+        if exemplar_max[i].item() > alpha*torch.mean(exemplar_res[i]).item():
+          adding = True
+          break
+      
+      if adding:
+        curr_ndis += 1  ## the D and GD are already initialized.
+        print("\nAdding\n")
+
 
 
 def main():

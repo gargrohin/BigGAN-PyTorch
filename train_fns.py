@@ -19,8 +19,8 @@ def dummy_training_function():
 
 
 def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
-  def train(x, y):
-    n_dis = len(multiD)
+  def train(x, y, n_dis):
+
     G.optim.zero_grad()
     for dind in range(n_dis):
       multiD[dind].optim.zero_grad()
