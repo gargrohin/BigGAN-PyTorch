@@ -21,7 +21,7 @@ import numpy as np
 from six.moves import urllib
 import tensorflow as tf
 
-MODEL_DIR = ''
+MODEL_DIR = 'incept'
 DATA_URL = 'http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'
 softmax = None
 
