@@ -233,15 +233,16 @@ def test(G, D, G_ema, z_, y_, state_dict, config, sample, get_inception_metrics,
                        G_ema if config['ema'] else None)
     state_dict['save_best_num'] = (state_dict['save_best_num'] + 1 ) % config['num_best_copies']
     G_batch_size = max(config['G_batch_size'], config['batch_size'])
+    sample_num_npz = 50000
     x, y = [], []
-    print('Sampling %d images and saving them to npz...' % config['sample_num_npz'])
-    for i in trange(int(np.ceil(config['sample_num_npz'] / float(G_batch_size)))):
+    print('Sampling %d images and saving them to npz...' % sample_num_npz)
+    for i in trange(int(np.ceil(sample_num_npz / float(G_batch_size)))):
       with torch.no_grad():
         images, labels = sample()
       x += [np.uint8(255 * (images.cpu().numpy() + 1) / 2.)]
       y += [labels.cpu().numpy()]
-    x = np.concatenate(x, 0)[:config['sample_num_npz']]
-    y = np.concatenate(y, 0)[:config['sample_num_npz']]    
+    x = np.concatenate(x, 0)[:sample_num_npz]
+    y = np.concatenate(y, 0)[:sample_num_npz]    
     print('Images shape: %s, Labels shape: %s' % (x.shape, y.shape))
     npz_filename = '%s/%s/samples.npz' % (config['samples_root'], experiment_name)
     print('Saving npz to %s...' % npz_filename)
