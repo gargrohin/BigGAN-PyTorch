@@ -2,7 +2,6 @@
 Derived from https://github.com/openai/improved-gan
 Code derived from tensorflow/tensorflow/models/image/imagenet/classify_image.py
 THIS CODE REQUIRES TENSORFLOW 1.3 or EARLIER to run in PARALLEL BATCH MODE 
-
 To use this code, run sample.py on your model with --sample_npz, and then 
 pass the experiment name in the --experiment_name.
 This code also saves pool3 stats to an npz file for FID calculation
@@ -22,7 +21,7 @@ import numpy as np
 from six.moves import urllib
 import tensorflow as tf
 
-MODEL_DIR = 'incept'
+MODEL_DIR = ''
 DATA_URL = 'http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'
 softmax = None
 
@@ -62,7 +61,7 @@ def run(config):
       for i in trange(n_batches):
         inp = inps[(i * bs):min((i + 1) * bs, len(inps))]
         inp = np.concatenate(inp, 0)
-        pred, pool = sess.run([softmax, pool3], {'InputTensor:0': inp})
+        pred, pool = sess.run([softmax, pool3], {'ExpandDims:0': inp})
         preds.append(pred)
         pools.append(pool)
       preds = np.concatenate(preds, 0)
@@ -94,13 +93,7 @@ def run(config):
         MODEL_DIR, 'classify_image_graph_def.pb'), 'rb') as f:
       graph_def = tf.GraphDef()
       graph_def.ParseFromString(f.read())
-      # Import model with a modification in the input tensor to accept arbitrary
-      # batch size.
-      input_tensor = tf.placeholder(tf.float32, shape=[None, None, None, 3],
-                                    name='InputTensor')
-      _ = tf.import_graph_def(graph_def, name='',
-                              input_map={'ExpandDims:0':input_tensor})
-      #_ = tf.import_graph_def(graph_def, name='')
+      _ = tf.import_graph_def(graph_def, name='')
     # Works with an arbitrary minibatch size.
     with tf.Session() as sess:
       pool3 = sess.graph.get_tensor_by_name('pool_3:0')
@@ -115,9 +108,9 @@ def run(config):
               new_shape.append(None)
             else:
               new_shape.append(s)
-          o.set_shape(tf.TensorShape(new_shape))
+          o._shape = tf.TensorShape(new_shape)
       w = sess.graph.get_operation_by_name("softmax/logits/MatMul").inputs[1]
-      logits = tf.matmul(tf.squeeze(pool3, [1,2]), w)
+      logits = tf.matmul(tf.squeeze(pool3), w)
       softmax = tf.nn.softmax(logits)
 
   # if softmax is None: # No need to functionalize like this.
