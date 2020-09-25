@@ -2,5 +2,5 @@ data/*
 weights/*
 logs/*
 *.npz
-samples/*
 incept/*
+*.npz
