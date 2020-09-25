@@ -2,7 +2,7 @@
 CUDA_VISIBLE_DEVICES=0,1 python train.py \
 --shuffle --batch_size 50 --parallel \
 --num_G_accumulations 1 --num_D_accumulations 1 --num_epochs 500 \
---num_D_steps 6 --G_lr 2e-4 --D_lr 2e-4 \
+--num_D_steps 7 --G_lr 2e-4 --D_lr 2e-4 \
 --dataset C10 \
 --G_ortho 0.0 \
 --G_attn 0 --D_attn 0 \

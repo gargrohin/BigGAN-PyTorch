@@ -261,7 +261,7 @@ def run(config):
       
       if adding:
         curr_ndis += 1  ## the D and GD are already initialized.
-        # print("\nAdding\n")
+        print("Adding\n")
 
 
 
