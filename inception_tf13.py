@@ -61,7 +61,7 @@ def run(config):
       for i in trange(n_batches):
         inp = inps[(i * bs):min((i + 1) * bs, len(inps))]
         inp = np.concatenate(inp, 0)
-        pred, pool = sess.run([softmax, pool3], {'ExpandDims:0': inp})
+        pred, pool = sess.run([softmax, pool3], {'InputTensor:0': inp})
         preds.append(pred)
         pools.append(pool)
       preds = np.concatenate(preds, 0)
