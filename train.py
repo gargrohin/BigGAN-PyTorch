@@ -62,13 +62,13 @@ def run(config):
   model = __import__(config['model'])
   experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
-  experiment_name = experiment_name + '_n_dis_4'
+  experiment_name = experiment_name + '_n_dis_3'
   print('Experiment name is %s' % experiment_name)
 
   # Next, build the model
   multiD = []
   multiGD = []
-  n_dis = 4  # maximum allowed
+  n_dis = 3  # maximum allowed
   curr_ndis = 1 # initial
   G = model.Generator(**config).to(device)
   for i in range(n_dis):
@@ -252,7 +252,7 @@ def run(config):
             exemplar_res2 = exemplar_res2.unsqueeze(0)
             exemplar_res = torch.cat((exemplar_res2, exemplar_res), dim=0)
       
-      alpha = 1 + (curr_ndis-1)/n_dis
+      alpha = 1 + (curr_ndis)/n_dis
       exemplar_max,_ = torch.max(exemplar_res, dim = 1)
       for i in range(curr_ndis):
         if exemplar_max[i].item() > alpha*torch.mean(exemplar_res[i]).item():
