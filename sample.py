@@ -95,7 +95,7 @@ def run(config):
     # Lists to hold images and labels for images
     x, y = [], []
     print('Sampling %d images and saving them to npz...' % config['sample_num_npz'])
-    for i in trange(int(np.ceil(config['sample_num_npz']*10 / float(G_batch_size)))):
+    for i in trange(int(np.ceil(config['sample_num_npz'] / float(G_batch_size)))):
       with torch.no_grad():
         images, labels = sample()
       x += [np.uint8(255 * (images.cpu().numpy() + 1) / 2.)]

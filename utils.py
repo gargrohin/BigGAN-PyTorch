@@ -369,7 +369,7 @@ def add_sample_parser(parser):
     help='Sample "sample_num_npz" images and save to npz? '
          '(default: %(default)s)')
   parser.add_argument(
-    '--sample_num_npz', type=int, default=50000,
+    '--sample_num_npz', type=int, default=500000,
     help='Number of images to sample when sampling NPZs '
          '(default: %(default)s)')
   parser.add_argument(
