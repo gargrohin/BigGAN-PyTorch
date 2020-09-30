@@ -62,7 +62,7 @@ def run(config):
   model = __import__(config['model'])
   experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
-  experiment_name = experiment_name + '_n_dis_1_db'
+  experiment_name = experiment_name + '_samples'
   print('Experiment name is %s' % experiment_name)
 
   # Next, build the model
@@ -181,87 +181,102 @@ def run(config):
       pbar = utils.progress(loaders[0],displaytype='s1k' if config['use_multiepoch_sampler'] else 'eta')
     else:
       pbar = tqdm(loaders[0])
+    sample_num_npz = 50000
+    x, y = [], []
+    print('Sampling %d images and saving them to npz...' % sample_num_npz)
     for i, (x, y) in enumerate(pbar):
-      # Increment the iteration counter
-      state_dict['itr'] += 1
-      # Make sure G and D are in training mode, just in case they got set to eval
-      # For D, which typically doesn't have BN, this shouldn't matter much.
-      G.train()
-      for dis_index in range(n_dis):
-        multiD[dis_index].train()
-      if config['ema']:
-        G_ema.train()
-      if config['D_fp16']:
-        x, y = x.to(device).half(), y.to(device)
-      else:
-        x, y = x.to(device), y.to(device)
-      metrics = train(x, y, curr_ndis)
-      train_log.log(itr=int(state_dict['itr']), **metrics)
+      # with torch.no_grad():
+      #   images, labels = sample()
+      x += [np.uint8(255 * (x.cpu().numpy() + 1) / 2.)]
+      y += [y.cpu().numpy()]
+    x = np.concatenate(x, 0)
+    y = np.concatenate(y, 0)  
+    print('Images shape: %s, Labels shape: %s' % (x.shape, y.shape))
+    npz_filename = '%s/%s/samples.npz' % (config['samples_root'], experiment_name)
+    print('Saving npz to %s...' % npz_filename)
+    np.savez(npz_filename, **{'x' : x, 'y' : y})
+
+    # for i, (x, y) in enumerate(pbar):
+    #   # Increment the iteration counter
+    #   state_dict['itr'] += 1
+    #   # Make sure G and D are in training mode, just in case they got set to eval
+    #   # For D, which typically doesn't have BN, this shouldn't matter much.
+    #   G.train()
+    #   for dis_index in range(n_dis):
+    #     multiD[dis_index].train()
+    #   if config['ema']:
+    #     G_ema.train()
+    #   if config['D_fp16']:
+    #     x, y = x.to(device).half(), y.to(device)
+    #   else:
+    #     x, y = x.to(device), y.to(device)
+    #   metrics = train(x, y, curr_ndis)
+    #   train_log.log(itr=int(state_dict['itr']), **metrics)
       
-      # Every sv_log_interval, log singular values
-      if (config['sv_log_interval'] > 0) and (not (state_dict['itr'] % config['sv_log_interval'])):
-        train_log.log(itr=int(state_dict['itr']), 
-                      **{**utils.get_SVs(G, 'G'), **utils.get_SVs(D, 'D')})
+    #   # Every sv_log_interval, log singular values
+    #   if (config['sv_log_interval'] > 0) and (not (state_dict['itr'] % config['sv_log_interval'])):
+    #     train_log.log(itr=int(state_dict['itr']), 
+    #                   **{**utils.get_SVs(G, 'G'), **utils.get_SVs(D, 'D')})
 
-      # If using my progbar, print metrics.
-      if config['pbar'] == 'mine':
-          print(', '.join(['itr: %d' % state_dict['itr']] 
-                           + ['%s : %+4.3f' % (key, metrics[key])
-                           for key in metrics]), end=' ')
+    #   # If using my progbar, print metrics.
+    #   if config['pbar'] == 'mine':
+    #       print(', '.join(['itr: %d' % state_dict['itr']] 
+    #                        + ['%s : %+4.3f' % (key, metrics[key])
+    #                        for key in metrics]), end=' ')
 
-      # Save weights and copies as configured at specified interval
-      if not (state_dict['itr'] % config['save_every']):
-        if config['G_eval_mode']:
-          print('Switchin G to eval mode...')
-          G.eval()
-          if config['ema']:
-            G_ema.eval()
-        train_fns.save_and_sample(G, multiD[0], G_ema, z_, y_, fixed_z, fixed_y, 
-                                  state_dict, config, experiment_name)
+    #   # Save weights and copies as configured at specified interval
+    #   if not (state_dict['itr'] % config['save_every']):
+    #     if config['G_eval_mode']:
+    #       print('Switchin G to eval mode...')
+    #       G.eval()
+    #       if config['ema']:
+    #         G_ema.eval()
+    #     train_fns.save_and_sample(G, multiD[0], G_ema, z_, y_, fixed_z, fixed_y, 
+    #                               state_dict, config, experiment_name)
 
-      # Test every specified interval
-      if not (state_dict['itr'] % config['test_every']):
-        if config['G_eval_mode']:
-          print('Switchin G to eval mode...')
-          G.eval()
-        train_fns.test(G, multiD[0], G_ema, z_, y_, state_dict, config, sample,
-                       get_inception_metrics, experiment_name, test_log)
-    # Increment epoch counter at end of epoch
-    state_dict['epoch'] += 1
+    #   # Test every specified interval
+    #   if not (state_dict['itr'] % config['test_every']):
+    #     if config['G_eval_mode']:
+    #       print('Switchin G to eval mode...')
+    #       G.eval()
+    #     train_fns.test(G, multiD[0], G_ema, z_, y_, state_dict, config, sample,
+    #                    get_inception_metrics, experiment_name, test_log)
+    # # Increment epoch counter at end of epoch
+    # state_dict['epoch'] += 1
 
-    # print("\n To add a D or not to\n")
+    # # print("\n To add a D or not to\n")
   
-    if fixed_exemplar == None:
-      fixed_exemplar = x[:15]
-      fixed_exemplar_y = y[:15]
-    if curr_ndis < n_dis:
-      adding = False
-      exemplar_flag = True
-      with torch.no_grad():
-        for dis_index in range(curr_ndis):
-          if exemplar_flag:
-              _, exemplar_res = multiGD[dis_index](fixed_z, fixed_y, 
-                                fixed_exemplar, fixed_exemplar_y, train_G=False, 
-                                split_D=config['split_D'])
-              exemplar_flag = False
-              exemplar_res = exemplar_res.unsqueeze(0)
-          else:
-            _, exemplar_res2 = multiGD[dis_index](fixed_z, fixed_y, 
-                              fixed_exemplar, fixed_exemplar_y, train_G=False, 
-                              split_D=config['split_D'])
-            exemplar_res2 = exemplar_res2.unsqueeze(0)
-            exemplar_res = torch.cat((exemplar_res2, exemplar_res), dim=0)
+    # if fixed_exemplar == None:
+    #   fixed_exemplar = x[:15]
+    #   fixed_exemplar_y = y[:15]
+    # if curr_ndis < n_dis:
+    #   adding = False
+    #   exemplar_flag = True
+    #   with torch.no_grad():
+    #     for dis_index in range(curr_ndis):
+    #       if exemplar_flag:
+    #           _, exemplar_res = multiGD[dis_index](fixed_z, fixed_y, 
+    #                             fixed_exemplar, fixed_exemplar_y, train_G=False, 
+    #                             split_D=config['split_D'])
+    #           exemplar_flag = False
+    #           exemplar_res = exemplar_res.unsqueeze(0)
+    #       else:
+    #         _, exemplar_res2 = multiGD[dis_index](fixed_z, fixed_y, 
+    #                           fixed_exemplar, fixed_exemplar_y, train_G=False, 
+    #                           split_D=config['split_D'])
+    #         exemplar_res2 = exemplar_res2.unsqueeze(0)
+    #         exemplar_res = torch.cat((exemplar_res2, exemplar_res), dim=0)
       
-      alpha = 1 + (curr_ndis)/n_dis
-      exemplar_max,_ = torch.max(exemplar_res, dim = 1)
-      for i in range(curr_ndis):
-        if exemplar_max[i].item() > alpha*torch.mean(exemplar_res[i]).item():
-          adding = True
-          break
+    #   alpha = 1 + (curr_ndis)/n_dis
+    #   exemplar_max,_ = torch.max(exemplar_res, dim = 1)
+    #   for i in range(curr_ndis):
+    #     if exemplar_max[i].item() > alpha*torch.mean(exemplar_res[i]).item():
+    #       adding = True
+    #       break
       
-      if adding:
-        curr_ndis += 1  ## the D and GD are already initialized.
-        print("Adding\n")
+    #   if adding:
+    #     curr_ndis += 1  ## the D and GD are already initialized.
+    #     print("Adding\n")
 
 
 
