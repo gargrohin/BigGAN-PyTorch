@@ -182,19 +182,19 @@ def run(config):
     else:
       pbar = tqdm(loaders[0])
     sample_num_npz = 50000
-    x, y = [], []
+    xsamp, ysamp = [], []
     print('Sampling %d images and saving them to npz...' % sample_num_npz)
     for i, (x, y) in enumerate(pbar):
       # with torch.no_grad():
       #   images, labels = sample()
-      x += [np.uint8(255 * (x.cpu().numpy() + 1) / 2.)]
-      y += [y.cpu().numpy()]
-    x = np.concatenate(x, 0)
-    y = np.concatenate(y, 0)  
-    print('Images shape: %s, Labels shape: %s' % (x.shape, y.shape))
+      xsamp += [np.uint8(255 * (x.cpu().numpy() + 1) / 2.)]
+      ysamp += [y.cpu().numpy()]
+    xsamp= np.concatenate(xsamp, 0)
+    ysamp = np.concatenate(ysamp, 0)  
+    print('Images shape: %s, Labels shape: %s' % (xsamp.shape, ysamp.shape))
     npz_filename = '%s/%s/samples.npz' % (config['samples_root'], experiment_name)
     print('Saving npz to %s...' % npz_filename)
-    np.savez(npz_filename, **{'x' : x, 'y' : y})
+    np.savez(npz_filename, **{'x' : xsamp, 'y' : ysamp})
 
     # for i, (x, y) in enumerate(pbar):
     #   # Increment the iteration counter
