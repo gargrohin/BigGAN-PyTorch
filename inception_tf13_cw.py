@@ -123,14 +123,16 @@ def run(config):
   fname = '%s/%s/samples.npz' % (config['experiment_root'], config['experiment_name'])
   print('loading %s ...'%fname)
   ims = np.load(fname)['x']
-  # ims = ims[np.load(fname)['y']==0]
+
   import time
-  t0 = time.time()
-  inc_mean, inc_std, pool_activations = get_inception_score(list(ims.swapaxes(1,2).swapaxes(2,3)), splits=10)
-  t1 = time.time()
-  print('Saving pool to numpy file for FID calculations...')
-  np.savez('%s/%s/TF_pool.npz' % (config['experiment_root'], config['experiment_name']), **{'pool_mean': np.mean(pool_activations,axis=0), 'pool_var': np.cov(pool_activations, rowvar=False)})
-  print('Inception took %3f seconds, score of %3f +/- %3f.'%(t1-t0, inc_mean, inc_std))
+  for cl in range(10):
+    t0 = time.time()
+    ims = np.load(fname)['x'][np.load(fname)['y']==cl]
+    inc_mean, inc_std, pool_activations = get_inception_score(list(ims.swapaxes(1,2).swapaxes(2,3)), splits=1)
+    t1 = time.time()
+    print('Saving pool to numpy file for FID calculations...')
+    np.savez('%s/%s/TF_pool_' + str(cl)+'_.npz' % (config['experiment_root'], config['experiment_name']), **{'pool_mean': np.mean(pool_activations,axis=0), 'pool_var': np.cov(pool_activations, rowvar=False)})
+    print('Inception took %3f seconds, score of %3f +/- %3f.'%(t1-t0, inc_mean, inc_std))
 def main():
   # parse command line and run
   parser = prepare_parser()
