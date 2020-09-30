@@ -95,7 +95,7 @@ def run(config):
     # Lists to hold images and labels for images
     x, y = [], []
     print('Sampling %d images and saving them to npz...' % config['sample_num_npz'])
-    for i in trange(int(np.ceil(config['sample_num_npz'] / float(G_batch_size)))):
+    for i in trange(int(np.ceil(config['sample_num_npz']*10 / float(G_batch_size)))):
       with torch.no_grad():
         images, labels = sample()
       x += [np.uint8(255 * (images.cpu().numpy() + 1) / 2.)]
@@ -103,7 +103,7 @@ def run(config):
     x = np.concatenate(x, 0)[:config['sample_num_npz']]
     y = np.concatenate(y, 0)[:config['sample_num_npz']]    
     print('Images shape: %s, Labels shape: %s' % (x.shape, y.shape))
-    npz_filename = '%s/%s/samples.npz' % (config['samples_root'], experiment_name)
+    npz_filename = '%s/%s/samples_all.npz' % (config['samples_root'], experiment_name)
     print('Saving npz to %s...' % npz_filename)
     np.savez(npz_filename, **{'x' : x, 'y' : y})
   
