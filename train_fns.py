@@ -58,7 +58,7 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
             D_fake_multi = torch.cat((D_fake_multi, D_fake), dim = 1)
             D_real_multi = torch.cat((D_real_multi, D_real), dim = 1)
           
-        ind = torch.argmax(D_real_multi, dim = 1)
+        ind = torch.argmin(D_fake_multi, dim = 1)
         mask = torch.zeros((config['batch_size'], n_dis)).cuda()
         mask2 = torch.zeros((config['batch_size'], n_dis)).cuda()
 
@@ -114,13 +114,15 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
         lit[dind] = torch.sum(D_fake).item()
       loss_sort = np.argsort(lit)
       weights = np.random.dirichlet(np.ones(n_dis))
-      weights = np.sort(weights)[::-1]
+      # weights = np.sort(weights)[::-1]
+      # hard min abelation
 
       flag = False
       for i in range(len(critic_fakes)):
         if flag == False:
-          critic_fake = weights[i]*critic_fakes[loss_sort[i]]
+          critic_fake = critic_fakes[loss_sort[i]] #  no weight mult due to abelation
           flag = True
+          break #hard weight abelation
         else:
           critic_fake = torch.add(critic_fake, weights[i]*critic_fakes[loss_sort[i]])
 
