@@ -272,8 +272,8 @@ def D_arch(ch=64, attention='64',ksize='333333', dilation='111111'):
                'resolution' : [32, 16, 8, 4, 4],
                'attention' : {2**i: 2**i in [int(item) for item in attention.split('_')]
                               for i in range(2,7)}}
-  arch[32]  = {'in_channels' :  [3] + [item * ch for item in [5, 6, 6]],
-               'out_channels' : [item * ch for item in [5, 6, 6, 6]],
+  arch[32]  = {'in_channels' :  [3] + [item * ch for item in [4, 4, 4]],
+               'out_channels' : [item * ch for item in [4, 4, 4, 4]],
                'downsample' : [True, True, False, False],
                'resolution' : [16, 16, 16, 16],
                'attention' : {2**i: 2**i in [int(item) for item in attention.split('_')]
