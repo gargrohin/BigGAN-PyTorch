@@ -77,7 +77,8 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
         # Compute components of D's loss, average them, and divide by 
         # the number of gradient accumulations
         D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake_output, D_real_output)
-        D_loss = (D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
+        lambdda = 10.0
+        D_loss = (lambdda*D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
         #print(D_loss)
         D_loss.backward()
         counter += 1
@@ -114,15 +115,14 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
         lit[dind] = torch.sum(D_fake).item()
       loss_sort = np.argsort(lit)
       weights = np.random.dirichlet(np.ones(n_dis))
-      # weights = np.sort(weights)[::-1]
-      # hard min abelation
+      weights = np.sort(weights)[::-1]
+      # hard min abelation no more
 
       flag = False
       for i in range(len(critic_fakes)):
         if flag == False:
-          critic_fake = critic_fakes[loss_sort[i]] #  no weight mult due to abelation
+          critic_fake = weights[i]*critic_fakes[loss_sort[i]] 
           flag = True
-          break #hard weight abelation
         else:
           critic_fake = torch.add(critic_fake, weights[i]*critic_fakes[loss_sort[i]])
 
