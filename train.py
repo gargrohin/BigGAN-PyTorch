@@ -62,7 +62,7 @@ def run(config):
   model = __import__(config['model'])
   experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
-  experiment_name = experiment_name + '_realweight'
+  experiment_name = experiment_name + 'cifar100_1'
   print('Experiment name is %s' % experiment_name)
 
   # Next, build the model
