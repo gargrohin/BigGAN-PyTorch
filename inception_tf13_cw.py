@@ -120,7 +120,7 @@ def run(config):
   # if softmax is None: # No need to functionalize like this.
   _init_inception()
 
-  fname = '%s/%s/samples_all.npz' % (config['experiment_root'], config['experiment_name'])
+  fname = '%s/%s/samples.npz' % (config['experiment_root'], config['experiment_name'])
   print('loading %s ...'%fname)
   ims = np.load(fname)['x']
 
@@ -129,7 +129,7 @@ def run(config):
   for cl in range(10):
     t0 = time.time()
     ims = np.load(fname)['x'][np.load(fname)['y']==cl]
-    inc_mean, inc_std, pool_activations = get_inception_score(list(ims.swapaxes(1,2).swapaxes(2,3)), splits=10)
+    inc_mean, inc_std, pool_activations = get_inception_score(list(ims.swapaxes(1,2).swapaxes(2,3)), splits=1)
     t1 = time.time()
     print('Saving pool to numpy file for FID calculations...')
     np.savez('%s/%s/TF_pool_%s_.npz' % (config['experiment_root'], config['experiment_name'], str(cl)), **{'pool_mean': np.mean(pool_activations,axis=0), 'pool_var': np.cov(pool_activations, rowvar=False)})

@@ -77,7 +77,7 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
         # Compute components of D's loss, average them, and divide by 
         # the number of gradient accumulations
         D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake_output, D_real_output)
-        lambdda = 10.0
+        lambdda = 2.0
         D_loss = (lambdda*D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
         #print(D_loss)
         D_loss.backward()
