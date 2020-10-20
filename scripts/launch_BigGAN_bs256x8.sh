@@ -11,4 +11,4 @@ python train.py --dataset I128_hdf5 --parallel --shuffle  --num_workers 8 --batc
 --G_eval_mode --G_ch 96 --D_ch 96 \
 --ema --use_ema --ema_start 20000 \
 --test_every 2000 --save_every 1000 --num_best_copies 5 --num_save_copies 2 --seed 0 \
---use_multiepoch_sampler \
+--use_multiepoch_sampler
