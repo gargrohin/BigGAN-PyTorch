@@ -62,14 +62,14 @@ def run(config):
   model = __import__(config['model'])
   experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
-  experiment_name = experiment_name + '_ndis_1'
+  experiment_name = experiment_name + '_ndis_4'
   print('Experiment name is %s' % experiment_name)
 
   # Next, build the model
   multiD = []
   multiGD = []
-  n_dis = 1  
-  curr_ndis = 1 # initial
+  n_dis = 4  
+  curr_ndis = 4 # initial
   G = model.Generator(**config).to(device)
   for i in range(n_dis):
     D = model.Discriminator(**config).to(device)
