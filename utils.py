@@ -56,7 +56,12 @@ def prepare_parser():
   parser.add_argument(
     '--use_multiepoch_sampler', action='store_true', default=False,
     help='Use the multi-epoch sampler for dataloader? (default: %(default)s)')
-  
+  parser.add_argument(
+    '--alpha', type=float, default=1.0,
+    help='Channel multiplier for G (default: %(default)s)')
+  parser.add_argument(
+    '--t', type=float, default=2.0,
+    help='Channel multiplier for G (default: %(default)s)')
   
   ### Model stuff ###
   parser.add_argument(

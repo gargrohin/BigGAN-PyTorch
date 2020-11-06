@@ -7,6 +7,9 @@
     Let's go.
 """
 
+import comet_ml
+comet_ml.config.save(api_key="jKV3NN31MK8hQrlT8N4sffY9f")
+
 import os
 import functools
 import math
@@ -62,19 +65,28 @@ def run(config):
   model = __import__(config['model'])
   experiment_name = (config['experiment_name'] if config['experiment_name']
                        else utils.name_from_config(config))
-  experiment_name = experiment_name + '_ndis_2'
+  
   print('Experiment name is %s' % experiment_name)
 
   # Next, build the model
   multiD = []
   multiGD = []
-  n_dis = 2  
-  curr_ndis = 2 # initial
+  n_dis = 1 
+  curr_ndis = 1 # initial
+  if config['alpha'] < 2:
+    n_dis = 2
+    curr_ndis = 2
+  if config['alpha'] < 3:
+    n_dis = 3
+    curr_ndis = 3
+  if config['alpha'] < 4:
+    n_dis = 4
+    curr_ndis = 4
   G = model.Generator(**config).to(device)
   for i in range(n_dis):
     D = model.Discriminator(**config).to(device)
     multiD.append(D)
-  
+  experiment_name = experiment_name + '_' + str(n_dis)
    # If using EMA, prepare it
   if config['ema']:
     print('Preparing EMA for G with decay of {}'.format(config['ema_decay']))
@@ -84,6 +96,17 @@ def run(config):
   else:
     G_ema, ema = None, None
   
+  experiment = comet_ml.Experiment(project_name="cub-sngan")
+  exp_parameters = {
+      "data": "imagenet",
+      "model": "BigGan",
+      "exp_name": experiment_name,
+      "alpha": config['alpha'],
+      "t": config['t']
+  }
+  output_temp = '.temp_img.png'
+  experiment.log_parameters(exp_parameters)
+
   # FP16?
   if config['G_fp16']:
     print('Casting G to float16...')
@@ -98,8 +121,8 @@ def run(config):
   for dind in range(n_dis):
     GD = model.G_D(G, multiD[dind])
     multiGD.append(GD)
-  print(G)
-  print(D)
+  # print(G)
+  # print(D)
   print('Number of params in G: {} D: {}'.format(
     *[sum([p.data.nelement() for p in net.parameters()]) for net in [G,D]]))
   # Prepare state dict, which holds things like epoch # and itr #
@@ -216,8 +239,10 @@ def run(config):
           G.eval()
           if config['ema']:
             G_ema.eval()
+        fixed_z.sample_()
+        fixed_y.sample_()
         train_fns.save_and_sample(G, multiD[0], G_ema, z_, y_, fixed_z, fixed_y, 
-                                  state_dict, config, experiment_name)
+                                  state_dict, config, experiment_name, experiment)
 
       # Test every specified interval
       if not (state_dict['itr'] % config['test_every']):
@@ -225,7 +250,7 @@ def run(config):
           print('Switchin G to eval mode...')
           G.eval()
         train_fns.test(G, multiD[0], G_ema, z_, y_, state_dict, config, sample,
-                       get_inception_metrics, experiment_name, test_log)
+                       get_inception_metrics, experiment_name, test_log, experiment)
     # Increment epoch counter at end of epoch
     state_dict['epoch'] += 1
 
@@ -258,7 +283,6 @@ def run(config):
         if exemplar_max[i].item() > alpha*torch.mean(exemplar_res[i]).item():
           adding = True
           break
-      
       if adding:
         curr_ndis += 1  ## the D and GD are already initialized.
         print("Adding\n")

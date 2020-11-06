@@ -154,7 +154,7 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
     a fixed noise seed (to show how the model evolves throughout training),
     a set of full conditional sample sheets, and a set of interp sheets. '''
 def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y, 
-                    state_dict, config, experiment_name):
+                    state_dict, config, experiment_name, experiment):
   utils.save_weights(G, D, state_dict, config['weights_root'],
                      experiment_name, None, G_ema if config['ema'] else None)
   # Save an additional copy to mitigate accidental corruption if process
@@ -188,7 +188,9 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
                                                   state_dict['itr'])
   torchvision.utils.save_image(fixed_Gz.float().cpu(), image_filename,
                              nrow=int(fixed_Gz.shape[0] **0.5), normalize=True)
-  # For now, every time we save, also save sample sheets
+  experiment.log_image(image_filename, name = "output_" + str(state_dict['itr']))
+  
+# For now, every time we save, also save sample sheets
   utils.sample_sheet(which_G,
                      classes_per_sheet=utils.classes_per_sheet_dict[config['dataset']],
                      num_classes=config['n_classes'],
@@ -211,13 +213,13 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
                        fix_z=fix_z, fix_y=fix_y, device='cuda')
 
 
-  
+
 ''' This function runs the inception metrics code, checks if the results
     are an improvement over the previous best (either in IS or FID, 
     user-specified), logs the results, and saves a best_ copy if it's an 
     improvement. '''
 def test(G, D, G_ema, z_, y_, state_dict, config, sample, get_inception_metrics,
-         experiment_name, test_log):
+         experiment_name, test_log, experiment):
   print('Gathering inception metrics...')
   if config['accumulate_stats']:
     utils.accumulate_standing_stats(G_ema if config['ema'] and config['use_ema'] else G,
@@ -227,6 +229,8 @@ def test(G, D, G_ema, z_, y_, state_dict, config, sample, get_inception_metrics,
                                                config['num_inception_images'],
                                                num_splits=10)
   print('Itr %d: PYTORCH UNOFFICIAL Inception Score is %3.3f +/- %3.3f, PYTORCH UNOFFICIAL FID is %5.4f' % (state_dict['itr'], IS_mean, IS_std, FID))
+  experiment.log_metric("IS", IS_mean)
+  experiment.log_metric("FID", FID)
   # If improved over previous best metric, save approrpiate copy
   if ((config['which_best'] == 'IS' and IS_mean > state_dict['best_IS'])
     or (config['which_best'] == 'FID' and FID < state_dict['best_FID'])):
