@@ -38,12 +38,13 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
       
     for step_index in range(config['num_D_steps']):
       # If accumulating gradients, loop multiple times before an optimizer step
-      flag = True
+      #flag = True
       for dind in range(n_dis):
         multiD[dind].optim.zero_grad()
         for p in multiD[dind].parameters():
           p.requires_grad = True
       for accumulation_index in range(config['num_D_accumulations']):
+        flag = True
         z_.sample_()
         y_.sample_()
         for dind in range(n_dis):
@@ -57,7 +58,7 @@ def GAN_training_function(G, multiD, multiGD, z_, y_, ema, state_dict, config):
           else:
             D_fake_multi = torch.cat((D_fake_multi, D_fake), dim = 1)
             D_real_multi = torch.cat((D_real_multi, D_real), dim = 1)
-          
+        
         ind = torch.argmin(D_fake_multi, dim = 1)
         mask = torch.zeros((config['batch_size'], n_dis)).cuda()
         mask2 = torch.zeros((config['batch_size'], n_dis)).cuda()
