@@ -73,6 +73,7 @@ def run(config):
   multiGD = []
   n_dis = 1 
   curr_ndis = 1 # initial
+  print(config['alpha'], config['t'])
   if config['alpha'] < 2 and config['alpha'] > 1:
     n_dis = 2
     curr_ndis = 2
