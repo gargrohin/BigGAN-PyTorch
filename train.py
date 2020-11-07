@@ -73,13 +73,13 @@ def run(config):
   multiGD = []
   n_dis = 1 
   curr_ndis = 1 # initial
-  if config['alpha'] < 2:
+  if config['alpha'] < 2 and config['alpha'] > 1:
     n_dis = 2
     curr_ndis = 2
-  if config['alpha'] < 3:
+  elif config['alpha'] < 3:
     n_dis = 3
     curr_ndis = 3
-  if config['alpha'] < 4:
+  elif config['alpha'] < 4:
     n_dis = 4
     curr_ndis = 4
   G = model.Generator(**config).to(device)
@@ -96,13 +96,14 @@ def run(config):
   else:
     G_ema, ema = None, None
   
-  experiment = comet_ml.Experiment(project_name="cub-sngan")
+  experiment = comet_ml.Experiment(project_name="imagenet-biggan0")
   exp_parameters = {
       "data": "imagenet",
       "model": "BigGan",
       "exp_name": experiment_name,
       "alpha": config['alpha'],
-      "t": config['t']
+      "t": config['t'],
+      "n_critic": config['num_D_steps']
   }
   output_temp = '.temp_img.png'
   experiment.log_parameters(exp_parameters)
