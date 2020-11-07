@@ -77,10 +77,10 @@ def run(config):
   if config['alpha'] < 2 and config['alpha'] > 1:
     n_dis = 2
     curr_ndis = 2
-  elif config['alpha'] < 3:
+  elif config['alpha'] < 3 and config['alpha'] > 2:
     n_dis = 3
     curr_ndis = 3
-  elif config['alpha'] < 4:
+  elif config['alpha'] < 4 and config['alpha'] > 3:
     n_dis = 4
     curr_ndis = 4
   G = model.Generator(**config).to(device)
