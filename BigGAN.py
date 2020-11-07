@@ -167,7 +167,7 @@ class Generator(nn.Module):
 
       # If attention on this block, attach it to the end
       if self.arch['attention'][self.arch['resolution'][index]]:
-        print('Adding attention layer in G at resolution %d' % self.arch['resolution'][index])
+        # print('Adding attention layer in G at resolution %d' % self.arch['resolution'][index])
         self.blocks[-1] += [layers.Attention(self.arch['out_channels'][index], self.which_conv)]
 
     # Turn self.blocks into a ModuleList so that it's all properly registered.
@@ -191,7 +191,7 @@ class Generator(nn.Module):
       return
     self.lr, self.B1, self.B2, self.adam_eps = G_lr, G_B1, G_B2, adam_eps
     if G_mixed_precision:
-      print('Using fp16 adam in G...')
+      # print('Using fp16 adam in G...')
       import utils
       self.optim = utils.Adam16(params=self.parameters(), lr=self.lr,
                            betas=(self.B1, self.B2), weight_decay=0,
@@ -221,7 +221,7 @@ class Generator(nn.Module):
         else:
           print('Init style not recognized...')
         self.param_count += sum([p.data.nelement() for p in module.parameters()])
-    print('Param count for G''s initialized parameters: %d' % self.param_count)
+    # print('Param count for G''s initialized parameters: %d' % self.param_count)
 
   # Note on this forward function: we pass in a y vector which has
   # already been passed through G.shared to enable easy class-wise
@@ -341,7 +341,7 @@ class Discriminator(nn.Module):
                        downsample=(nn.AvgPool2d(2) if self.arch['downsample'][index] else None))]]
       # If attention on this block, attach it to the end
       if self.arch['attention'][self.arch['resolution'][index]]:
-        print('Adding attention layer in D at resolution %d' % self.arch['resolution'][index])
+        # print('Adding attention layer in D at resolution %d' % self.arch['resolution'][index])
         self.blocks[-1] += [layers.Attention(self.arch['out_channels'][index],
                                              self.which_conv)]
     # Turn self.blocks into a ModuleList so that it's all properly registered.
@@ -359,7 +359,7 @@ class Discriminator(nn.Module):
     # Set up optimizer
     self.lr, self.B1, self.B2, self.adam_eps = D_lr, D_B1, D_B2, adam_eps
     if D_mixed_precision:
-      print('Using fp16 adam in D...')
+      # print('Using fp16 adam in D...')
       import utils
       self.optim = utils.Adam16(params=self.parameters(), lr=self.lr,
                              betas=(self.B1, self.B2), weight_decay=0, eps=self.adam_eps)
@@ -386,7 +386,7 @@ class Discriminator(nn.Module):
         else:
           print('Init style not recognized...')
         self.param_count += sum([p.data.nelement() for p in module.parameters()])
-    print('Param count for D''s initialized parameters: %d' % self.param_count)
+    # print('Param count for D''s initialized parameters: %d' % self.param_count)
 
   def forward(self, x, y=None):
     # Stick x into h for cleaner for loops without flow control
